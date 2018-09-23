@@ -49,6 +49,11 @@
           bus = 'https://upload.wikimedia.org/wikipedia/commons/4/44/MadridMetro-BusUrbano.svg';
 
     // Define layers
+    const locSource = new carto.source.SQL(`SELECT * FROM geocamp_location`);
+    const locViz = new carto.Viz();
+    const locLayer = new carto.Layer('locLayer', locSource, locViz);
+
+
     const transportSource = new carto.source.Dataset(`geocamp_transport`);
     const transportViz = new carto.Viz(`
         width: 20,
@@ -62,7 +67,8 @@
 
     transportLayer.addTo(map, 'watername_ocean');
     aoisLayer.addTo(map, 'transportLayer');
-    aoisLayer.on('loaded', hideLoader);
+    locLayer.addTo(map, 'transportLayer');
+    locLayer.on('loaded', hideLoader);
 
     function hideLoader() {
       document.getElementById('loader').style.opacity = '0';
