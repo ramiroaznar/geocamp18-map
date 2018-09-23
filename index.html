@@ -25,8 +25,8 @@
     const map = new mapboxgl.Map({
       container: 'map',
       style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-      center: [0, 43],
-      zoom: 4,
+      center: [-3.71367931,40.41199298],
+      zoom: 15,
       scrollZoom: false,
       dragRotate: false,
       touchZoomRotate: false,
@@ -43,17 +43,25 @@
       apiKey: 'default_public'
     });
 
-    // Define layers
-    const locationSource = new carto.source.Dataset(`geocamp_location`);
-    const locationViz = new carto.Viz();
-    const locationLayer = new carto.Layer('locationLayer', locationSource, locationViz);
+    // Define symbols urls
+    const metro = 'https://upload.wikimedia.org/wikipedia/commons/e/ea/MetroMadridLogo.svg', 
+          bicimad = 'https://upload.wikimedia.org/wikipedia/commons/9/95/Colombia_road_sign_SI-11.svg', 
+          bus = 'https://upload.wikimedia.org/wikipedia/commons/4/44/MadridMetro-BusUrbano.svg';
 
-    const aoisSource = new carto.source.Dataset(`geocamp_aois`);
+    // Define layers
+    const transportSource = new carto.source.Dataset(`geocamp_transport`);
+    const transportViz = new carto.Viz(`
+        width: 20,
+        symbol: ramp(buckets($type, ['bus','bicimad','metro']), [image('${bus}'), image('${bicimad}'), image('${metro}')])
+    `);
+    const transportLayer = new carto.Layer('transportLayer', transportSource, transportViz);
+
+    const aoisSource = new carto.source.SQL(`SELECT * FROM geocamp_aois ORDER BY minutes_num DESC`);
     const aoisViz = new carto.Viz();
     const aoisLayer = new carto.Layer('aoisLayer', aoisSource, aoisViz);
 
-    locationLayer.addTo(map, 'watername_ocean');
-    aoisLayer.addTo(map, 'locationLayer');
+    transportLayer.addTo(map, 'watername_ocean');
+    aoisLayer.addTo(map, 'transportLayer');
     aoisLayer.on('loaded', hideLoader);
 
     function hideLoader() {
