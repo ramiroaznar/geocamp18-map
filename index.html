@@ -24,7 +24,7 @@
   <script>
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
       center: [-3.71367931,40.41199298],
       zoom: 15,
       scrollZoom: false,
@@ -44,30 +44,48 @@
     });
 
     // Define symbols urls
-    const metro = 'https://upload.wikimedia.org/wikipedia/commons/e/ea/MetroMadridLogo.svg', 
-          bicimad = 'https://upload.wikimedia.org/wikipedia/commons/9/95/Colombia_road_sign_SI-11.svg', 
-          bus = 'https://upload.wikimedia.org/wikipedia/commons/4/44/MadridMetro-BusUrbano.svg';
+    const metro = 'https://s3.amazonaws.com/com.cartodb.users-assets.production/maki-icons/rail-18.svg';
 
     // Define layers
     const locSource = new carto.source.SQL(`SELECT * FROM geocamp_location`);
-    const locViz = new carto.Viz();
+    const locViz = new carto.Viz(`
+        symbol: marker,
+        width: 40,
+        color: #fff
+    `);
     const locLayer = new carto.Layer('locLayer', locSource, locViz);
 
+    const iconsSource = new carto.source.Dataset(`geocamp_transport`);
+    const iconsViz = new carto.Viz(`
+        @lines: $lines
 
-    const transportSource = new carto.source.Dataset(`geocamp_transport`);
-    const transportViz = new carto.Viz(`
         width: 20,
-        symbol: ramp(buckets($type, ['bus','bicimad','metro']), [image('${bus}'), image('${bicimad}'), image('${metro}')])
+        color: #fff,
+        symbolPlacement: align_center,
+        symbol: ramp(buckets($type, ['bus','bicimad','metro']), [bus, bicycle, image('${metro}')])
     `);
-    const transportLayer = new carto.Layer('transportLayer', transportSource, transportViz);
+    const iconsLayer = new carto.Layer('iconsLayer', iconsSource, iconsViz);
+
+    const markersSource = new carto.source.Dataset(`geocamp_transport`);
+    const markersViz = new carto.Viz(`
+        width: 30,
+        color: opacity(#000, 0.1),
+        strokeColor: #fff,
+        strokeWidth: 1,
+    `);
+    const markersLayer = new carto.Layer('markersLayer', markersSource, markersViz);
+
 
     const aoisSource = new carto.source.SQL(`SELECT * FROM geocamp_aois ORDER BY minutes_num DESC`);
-    const aoisViz = new carto.Viz();
+    const aoisViz = new carto.Viz(`
+        color: opacity(ramp(buckets($minutes, ["5 min.", "10 min."]),[#B5D5E8, #4F7496]),0.5)
+    `);
     const aoisLayer = new carto.Layer('aoisLayer', aoisSource, aoisViz);
 
-    transportLayer.addTo(map, 'watername_ocean');
-    aoisLayer.addTo(map, 'transportLayer');
-    locLayer.addTo(map, 'transportLayer');
+    iconsLayer.addTo(map);
+    aoisLayer.addTo(map, 'iconsLayer');
+    markersLayer.addTo(map, 'iconsLayer');
+    locLayer.addTo(map, 'iconsLayer');
     locLayer.on('loaded', hideLoader);
 
     function hideLoader() {
