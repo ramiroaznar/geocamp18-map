@@ -58,8 +58,9 @@
     const iconsSource = new carto.source.Dataset(`geocamp_transport`);
     const iconsViz = new carto.Viz(`
         @lines: $lines
+        @type: $type
 
-        width: 20,
+        width: ramp(zoomRange([10,13,15]), [5,10,20]),
         color: #fff,
         symbolPlacement: align_center,
         symbol: ramp(buckets($type, ['bus','bicimad','metro']), [bus, bicycle, image('${metro}')])
@@ -68,7 +69,7 @@
 
     const markersSource = new carto.source.Dataset(`geocamp_transport`);
     const markersViz = new carto.Viz(`
-        width: 30,
+        width: ramp(zoomRange([10,13,15]), [10,20,30]),
         color: opacity(#000, 0.1),
         strokeColor: #fff,
         strokeWidth: 1,
@@ -88,15 +89,31 @@
     locLayer.on('loaded', hideLoader);
 
     // Define interactivity
-    const interactivity = new carto.Interactivity(iconsLayer);
-    interactivity.on('featureHover', featureEvent => {
-      const coords = featureEvent.coordinates;
-      const feature = featureEvent.features[0];
-      new mapboxgl.Popup()
-          .setLngLat([coords.lng, coords.lat])
-          .setHTML(`<h1>Lines</h1><br><p>${feature.variables.lines.value}<p>`)
-          .addTo(map);
+    const popup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false
     });
+
+    const interactivity = new carto.Interactivity(iconsLayer);
+    interactivity.on('featureHover', updatePopup);
+
+    function updatePopup(event) {
+      if (event.features.length > 0) {
+        const vars = event.features[0].variables;
+        popup.setHTML(`
+        <div>
+          <h3 class ="h3">${vars.type.value}</h3>
+          <p class="description open-sans">${vars.lines.value}</h3>
+        </div>
+        `);
+        popup.setLngLat([event.coordinates.lng, event.coordinates.lat]);
+        if (!popup.isOpen()) {
+          popup.addTo(map);
+        }
+      } else {
+        popup.remove();
+      }
+    }
 
     function hideLoader() {
       document.getElementById('loader').style.opacity = '0';
