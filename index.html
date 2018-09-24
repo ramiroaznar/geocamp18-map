@@ -50,7 +50,7 @@
     const locSource = new carto.source.SQL(`SELECT * FROM geocamp_location`);
     const locViz = new carto.Viz(`
         symbol: marker,
-        width: 40,
+        width: 30*(sin(now())+1)/2+20,
         color: #fff
     `);
     const locLayer = new carto.Layer('locLayer', locSource, locViz);
@@ -75,7 +75,6 @@
     `);
     const markersLayer = new carto.Layer('markersLayer', markersSource, markersViz);
 
-
     const aoisSource = new carto.source.SQL(`SELECT * FROM geocamp_aois ORDER BY minutes_num DESC`);
     const aoisViz = new carto.Viz(`
         color: opacity(ramp(buckets($minutes, ["5 min.", "10 min."]),[#B5D5E8, #4F7496]),0.5)
@@ -87,6 +86,17 @@
     markersLayer.addTo(map, 'iconsLayer');
     locLayer.addTo(map, 'iconsLayer');
     locLayer.on('loaded', hideLoader);
+
+    // Define interactivity
+    const interactivity = new carto.Interactivity(iconsLayer);
+    interactivity.on('featureHover', featureEvent => {
+      const coords = featureEvent.coordinates;
+      const feature = featureEvent.features[0];
+      new mapboxgl.Popup()
+          .setLngLat([coords.lng, coords.lat])
+          .setHTML(`<h1>Lines</h1><br><p>${feature.variables.lines.value}<p>`)
+          .addTo(map);
+    });
 
     function hideLoader() {
       document.getElementById('loader').style.opacity = '0';
