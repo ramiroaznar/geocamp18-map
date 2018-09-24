@@ -100,18 +100,22 @@
     function updatePopup(event) {
       if (event.features.length > 0) {
         const vars = event.features[0].variables;
-        popup.setHTML(`
-        <div>
-          <h3 class ="h3">${vars.type.value}</h3>
-          <p class="description open-sans">${vars.lines.value}</h3>
-        </div>
-        `);
+        let type = vars.type.value;
+        let lines = vars.lines.value;
+        if type {
+          popup.setHTML(`
+            <div>
+              <h3 class ="h3">${}</h3>
+              <p class="description open-sans">${vars.lines.value}</h3>
+            </div>
+            `);
         popup.setLngLat([event.coordinates.lng, event.coordinates.lat]);
         if (!popup.isOpen()) {
           popup.addTo(map);
         }
-      } else {
-        popup.remove();
+        } else {
+          popup.remove();
+        }
       }
     }
 
@@ -121,5 +125,3 @@
   </script>
 </body>
 </html>
-
-      
