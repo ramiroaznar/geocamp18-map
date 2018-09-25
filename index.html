@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Geocamp 2018 Map</title>
+  <title>Geocamp 2018 Map | CARTO VL</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
   <!-- Include CARTO VL JS -->
@@ -24,9 +24,9 @@
   <script>
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-      center: [0, 43],
-      zoom: 4,
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center: [-3.71367931,40.41199298],
+      zoom: 15,
       scrollZoom: false,
       dragRotate: false,
       touchZoomRotate: false,
@@ -43,18 +43,98 @@
       apiKey: 'default_public'
     });
 
-    // Define layers
-    const locationSource = new carto.source.Dataset(`geocamp_location`);
-    const locationViz = new carto.Viz();
-    const locationLayer = new carto.Layer('locationLayer', locationSource, locationViz);
+    // Define symbols urls
+    const metro = 'https://s3.amazonaws.com/com.cartodb.users-assets.production/maki-icons/rail-18.svg';
 
-    const aoisSource = new carto.source.Dataset(`geocamp_aois`);
-    const aoisViz = new carto.Viz();
+    // Define layers
+    const locSource = new carto.source.SQL(`SELECT * FROM geocamp_location`);
+    const locViz = new carto.Viz(`
+        symbol: marker,
+        width: 30*(sin(now())+1)/2+20,
+        color: #fff
+    `);
+    const locLayer = new carto.Layer('locLayer', locSource, locViz);
+
+    const iconsSource = new carto.source.Dataset(`geocamp_transport`);
+    const iconsViz = new carto.Viz(`
+        @lines: $lines
+        @type: $type
+        @name: $name
+
+        width: ramp(zoomRange([10,13,15]), [5,10,20]),
+        color: #fff,
+        symbolPlacement: align_center,
+        symbol: ramp(buckets($type, ['bus','bicimad','metro']), [bus, bicycle, image('${metro}')])
+    `);
+    const iconsLayer = new carto.Layer('iconsLayer', iconsSource, iconsViz);
+
+    const markersSource = new carto.source.Dataset(`geocamp_transport`);
+    const markersViz = new carto.Viz(`
+        width: ramp(zoomRange([10,13,15]), [10,20,30]),
+        color: opacity(#000, 0.1),
+        strokeColor: #fff,
+        strokeWidth: 1,
+    `);
+    const markersLayer = new carto.Layer('markersLayer', markersSource, markersViz);
+
+    const aoisSource = new carto.source.SQL(`SELECT * FROM geocamp_aois ORDER BY minutes_num DESC`);
+    const aoisViz = new carto.Viz(`
+        color: opacity(ramp(buckets($minutes, ["5 min.", "10 min."]),[#B5D5E8, #4F7496]),0.3),
+        strokeWidth: 0;
+    `);
     const aoisLayer = new carto.Layer('aoisLayer', aoisSource, aoisViz);
 
-    locationLayer.addTo(map, 'watername_ocean');
-    aoisLayer.addTo(map, 'locationLayer');
-    aoisLayer.on('loaded', hideLoader);
+    iconsLayer.addTo(map);
+    aoisLayer.addTo(map, 'iconsLayer');
+    markersLayer.addTo(map, 'iconsLayer');
+    locLayer.addTo(map, 'iconsLayer');
+    locLayer.on('loaded', hideLoader);
+
+    // Define interactivity
+    const popup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false
+    });
+
+    const interactivity = new carto.Interactivity(iconsLayer);
+    interactivity.on('featureHover', updatePopup);
+
+    function updatePopup(event) {
+      if (event.features.length > 0) {
+        const vars = event.features[0].variables;
+        let type = vars.type.value.toUpperCase();
+        let name = vars.name.value;
+        let lines = vars.lines.value;
+        if (type == 'BUS') {
+          popup.setHTML(`
+            <div>
+              <h3 class ="h3">${type}</h3>
+              <p class="description open-sans">Lines: ${lines}</h3>
+            </div>
+            `);
+        } else if (type == 'METRO') {
+          popup.setHTML(`
+            <div>
+              <h3 class="h3">${type}</h3>
+              <h3 class="h3">${name}</h3>
+              <p class="description open-sans">Lines: ${lines}</h3>
+            </div>
+            `);
+        } else {
+          popup.setHTML(`
+            <div>
+              <h3 class ="h3">${type}</h3>
+            </div>
+            `);
+        }
+        popup.setLngLat([event.coordinates.lng, event.coordinates.lat]);
+        if (!popup.isOpen()) {
+          popup.addTo(map);
+        }
+        } else {
+          popup.remove();
+        }
+      }
 
     function hideLoader() {
       document.getElementById('loader').style.opacity = '0';
@@ -62,5 +142,3 @@
   </script>
 </body>
 </html>
-
-      
