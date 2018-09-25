@@ -59,6 +59,7 @@
     const iconsViz = new carto.Viz(`
         @lines: $lines
         @type: $type
+        @name: $name
 
         width: ramp(zoomRange([10,13,15]), [5,10,20]),
         color: #fff,
@@ -78,7 +79,8 @@
 
     const aoisSource = new carto.source.SQL(`SELECT * FROM geocamp_aois ORDER BY minutes_num DESC`);
     const aoisViz = new carto.Viz(`
-        color: opacity(ramp(buckets($minutes, ["5 min.", "10 min."]),[#B5D5E8, #4F7496]),0.5)
+        color: opacity(ramp(buckets($minutes, ["5 min.", "10 min."]),[#B5D5E8, #4F7496]),0.3),
+        strokeWidth: 0;
     `);
     const aoisLayer = new carto.Layer('aoisLayer', aoisSource, aoisViz);
 
@@ -100,15 +102,31 @@
     function updatePopup(event) {
       if (event.features.length > 0) {
         const vars = event.features[0].variables;
-        let type = vars.type.value;
+        let type = vars.type.value.toUpperCase();
+        let name = vars.name.value;
         let lines = vars.lines.value;
-        if (lines) {
+        if (type == 'BUS') {
           popup.setHTML(`
             <div>
               <h3 class ="h3">${type}</h3>
-              <p class="description open-sans">${lines}</h3>
+              <p class="description open-sans">Lines: ${lines}</h3>
             </div>
             `);
+        } else if (type == 'METRO') {
+          popup.setHTML(`
+            <div>
+              <h3 class="h3">${type}</h3>
+              <h3 class="h3">${name}</h3>
+              <p class="description open-sans">Lines: ${lines}</h3>
+            </div>
+            `);
+        } else {
+          popup.setHTML(`
+            <div>
+              <h3 class ="h3">${type}</h3>
+            </div>
+            `);
+        }
         popup.setLngLat([event.coordinates.lng, event.coordinates.lat]);
         if (!popup.isOpen()) {
           popup.addTo(map);
@@ -117,7 +135,6 @@
           popup.remove();
         }
       }
-    }
 
     function hideLoader() {
       document.getElementById('loader').style.opacity = '0';
